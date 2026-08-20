@@ -40,7 +40,7 @@ cp .env.example .env
 Then edit `.env`:
 
 ```bash
-SUWAYOMI=http://192.168.x.x:4567     # your Suwayomi API
+SUWAYOMI=http://192.168.x.x:4567     # your Suwayomi URL
 YUME_BASE=http://192.168.x.x:8420    # where Yume will be served
 ```
 
