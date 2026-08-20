@@ -6,11 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Yume — a PWA client for a self-hosted Suwayomi manga server, installed on iOS via
 Add to Home Screen. Plain HTML/CSS/JS: **no framework, no build step, no bundler,
-no test framework, and no git repo.** Files are served as-authored. Editing a file
-and reloading the page is the whole edit-test loop.
+and no npm dependencies.** Files are served as-authored; editing one and
+reloading the page is the whole edit-test loop.
 
-Because there is no test suite, changes are verified by driving a real browser
-(see *Verifying changes*).
+Published at https://github.com/Axvx1212/Yume (public). `package.json` exists
+only to mark the tree as ESM and name a few scripts — there is nothing to
+install.
+
+There is no unit-test framework. Correctness is checked by driving a real
+browser instead (see *Verifying changes*), because the bugs this project
+actually shipped were invisible to DOM assertions.
 
 ## Configuration
 
@@ -118,7 +123,26 @@ Deliberately does **not** block explicit user actions (adding to library, tappin
 a chapter's read toggle): those are choices, not history. Position is still
 tracked locally in `seenPage` so mode switches don't lose your place.
 
+### Chapter actions (`js/views/manga-detail.js`)
+
+Tap a chapter row opens the reader; tap its check button toggles read; **holding
+the row** opens an action sheet with the bulk operations (mark previous
+read/unread, mark following read). The ⋯ button in the hero opens the
+title-level sheet (mark all read/unread, sort, library, refresh).
+
+`onLongPress` in `dom.js` suppresses the click that would otherwise fire on
+release — without that, letting go of a long press also opened the reader. It
+replaced a `dblclick` handler, which sent *two* clicks first and raced its own
+bulk write, and is unreliable on touch besides.
+
+Both sheets are built by `actionSheet()` so they share one look and one
+dismissal path.
+
 ### Everything else
+
+`source.js` renders one source's catalog (`#/source/:id`) — Popular / Latest /
+in-source search over the same `fetchSourceManga` mutation, paginated. It is
+what makes an installed extension usable rather than merely installed.
 
 `api.js` holds every GraphQL operation; `state.js` holds prefs (localStorage),
 a session-only cache, and shared constants (`READER_MODES`, `nextGridCols`) that
@@ -231,7 +255,35 @@ touch-related.
 
 Note that the app writes to a **real server holding the user's library**. Tests
 that mutate state (marking read, adding to library, installing extensions) must
-revert what they changed and leave the user's own data alone.
+revert what they changed and leave the user's own data alone. `withRevert` in
+`tests/lib/harness.js` exists for that, and the snapshot must cover everything
+the test could touch — reading a chapter auto-marks *several* chapters, so
+restoring only the one that was opened leaves the rest dirty.
+
+**Wait on conditions, never on a fixed duration.** `driver.waitFor(expr)` polls
+until an expression is truthy; `sleep(n)` should appear only where nothing
+observable changes. Two rules learned the hard way:
+
+- **Wait for the signal that means the server agreed**, not the one the UI
+  paints optimistically. Several actions (library toggle, chapter read toggle)
+  update the DOM *before* the round trip and show a toast only after it
+  succeeds, so waiting on the button text passes even when the write failed.
+- **A polling loop must fail when the browser dies.** Swallowing evaluate
+  errors and retrying turns a crashed Chrome into a silent hang; `waitFor`
+  aborts after ten consecutive failures for this reason.
+
+When judging whether a run is stuck, watch the **log growing**, not process
+state — a test file exiting while the next one starts looks exactly like a hang
+if you sample the file name and the browser count separately.
+
+## Next up
+
+`docs/ROADMAP.md` holds the plan for user-selectable themes, written against an
+audit of the current CSS rather than from memory: 45 tokens already live in
+`:root` with no hard-coded hex outside it, so the real blockers are 13 `rgba()`
+literals, a `theme-color` fixed in both `index.html` and `manifest.json`, and a
+missing `prefs.theme`. It also records the one open decision — whether a light
+theme should make the *reader* light, given manga pages are mostly white.
 
 ## Other agent configs
 

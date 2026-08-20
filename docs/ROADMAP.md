@@ -11,7 +11,7 @@ theme.
 
 ## Where the codebase already helps
 
-`css/style.css` defines **42 design tokens** in `:root` and has **zero
+`css/style.css` defines **45 design tokens** in `:root` and has **zero
 hardcoded hex values outside that block**. Every component already reads
 `var(--color-*)`, `var(--space-*)`, `var(--radius-*)`. Swapping a palette is
 therefore mostly a matter of redefining `:root`, not touching components.
