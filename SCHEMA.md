@@ -134,7 +134,7 @@ fetchExtensions(input: {}) { extensions { ... } }    # refresh the available lis
     slider value back while the user is dragging. Mute the writeback between
     pointerdown and pointerup.
 
-## Reader prefetch (measured against Reimei)
+## Reader prefetch (measured against a real server)
 
 Page images here run **234KB–1.1MB each**, so concurrency, not request count,
 is what a server feels. Measured with the Resource Timing API and CDP network

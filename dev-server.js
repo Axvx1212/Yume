@@ -24,7 +24,7 @@ const argOf = (flag, fallback) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
 };
 
-// 8420 by default — 8080 is commonly taken (Docker binds it on this machine).
+// 8420 by default — clear of the 8080/8000 range most self-hosted stacks use.
 const PORT = Number(argOf('--port', process.env.PORT || 8420));
 const HOST = argOf('--host', '0.0.0.0');           // LAN-visible, for the phone
 const UPSTREAM = new URL(argOf('--upstream', process.env.UPSTREAM || SUWAYOMI));

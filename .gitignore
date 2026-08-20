@@ -18,4 +18,5 @@ secrets.*
 # Test artefacts and scratch output
 *.log
 /tmp/
-screenshots/
+# Screenshots produced by test runs (docs/screenshots/ is committed on purpose)
+/screenshots/

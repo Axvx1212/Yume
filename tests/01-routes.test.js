@@ -30,7 +30,10 @@ try {
 
   for (const [hash, expect] of routes) {
     driver.resetCounters();
-    await driver.goto(`${BASE}/index.html${hash}`, hash.includes('reader') ? 14000 : 6000);
+    // Wait for the screen to be populated rather than for a fixed duration.
+    await driver.goto(`${BASE}/index.html${hash}`);
+    if (expect.chapters) await driver.waitFor('document.querySelectorAll(".chapter").length > 0');
+    if (expect.pages) await driver.waitFor('document.querySelectorAll(".page").length > 0');
 
     const state = await driver.json(`
       const view = document.getElementById('view');
@@ -53,22 +56,24 @@ try {
 
   // Reader back must not push a duplicate detail entry (it did once, which made
   // Back from the detail screen look like the manga reopening).
-  await driver.goto(`${BASE}/index.html#/manga/${mangaId}`, 12000);
+  await driver.goto(`${BASE}/index.html#/manga/${mangaId}`);
+  await driver.waitFor('document.querySelector(".dock .btn")');
   await driver.eval(`document.querySelector('.dock .btn')?.click()`);
-  await sleep(12000);
+  await driver.waitFor('location.hash.startsWith("#/reader/")');
   const atReader = await driver.eval(`location.hash`);
   ok(atReader.startsWith('#/reader/'), 'resume button opens the reader', atReader);
 
+  await driver.waitFor('document.querySelector(".chrome-top .icon-btn")');
   await driver.eval(`document.querySelector('.chrome-top .icon-btn')?.click()`);
-  await sleep(4000);
+  await driver.waitFor(`location.hash === "#/manga/${mangaId}"`);
   const backOnce = await driver.eval(`location.hash`);
   eq(backOnce, `#/manga/${mangaId}`, 'reader back returns to the detail screen');
 
   info('tab switches replace history', 'so Back never walks a trail of tab taps');
-  await driver.goto(`${BASE}/index.html#/library`, 4000);
+  await driver.goto(`${BASE}/index.html#/library`);
   for (const tab of ['browse', 'more', 'library']) {
     await driver.eval(`document.querySelector('.tab[data-tab="${tab}"]').click()`);
-    await sleep(2000);
+    await driver.waitFor(`location.hash === "#/${tab}"`);
   }
   eq(await driver.eval(`location.hash`), '#/library', 'tab bar navigates');
 } finally {

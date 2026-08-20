@@ -8,7 +8,7 @@ No existing iOS client for Suwayomi covers what's wanted well enough — the clo
 
 ## Server context
 
-- Suwayomi-Server running in Docker on Reimei (`your-server:4567`)
+- Suwayomi-Server running in Docker on the home server (`your-server:4567`)
 - GraphQL API at `/api/graphql`, browsable via GraphiQL at the same URL
 - REST API also exists but is deprecated — GraphQL only
 - No auth currently enabled, LAN-only access
@@ -74,7 +74,7 @@ yumeyomi/
 ## Deployment
 
 - `nginx:alpine` container serving static files + reverse-proxy config
-- Added as a new service in the existing Reimei docker-compose file
+- Added as a new service in the existing docker-compose file
 - Own port, same Docker network as the Suwayomi container
 
 ## Next steps
@@ -82,5 +82,5 @@ yumeyomi/
 1. Introspect the live GraphQL schema via GraphiQL to confirm exact field/mutation names
 2. Build and test locally against the real server (dev server, browser preview)
 3. Optional: mock up Library + Reader screens visually before styling, for a more distinctive look than framework defaults
-4. Containerize and add to Reimei's compose file
+4. Containerize and add to the compose file
 5. Add to iPhone Home Screen and test end to end

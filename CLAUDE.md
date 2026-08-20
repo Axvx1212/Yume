@@ -28,13 +28,18 @@ node dev-server.js --port 9000     # 8420 is the default (8080 is taken by Docke
 node dev-server.js --verbose       # also log static file requests
 npm run check                      # syntax-check every JS file (no linter here)
 
-node tests/run.cjs                 # full suite, against the deployment
+node tests/run.cjs                 # full suite, 3 files at a time
+node tests/run.cjs --jobs 1        # serial, when debugging a flaky test
 node tests/run.cjs visual touch    # only files matching those names
 YUME_BASE=http://localhost:8420 node tests/run.cjs    # against a local dev server
 
 tools/gql.sh '{ aboutServer { version } }'   # one-off GraphQL
 tools/schema.sh UpdateChapterPatchInput      # introspect a type (REFRESH=1 to re-fetch)
 ```
+
+Suites run in parallel except `05-writes`, which snapshots and restores server
+state and so must run alone — a concurrent reader would land progress writes
+inside its restore window.
 
 **Run the full suite before every deployment.** The tests drive a real browser
 at real device dimensions and assert on rendered pixels, which is the only thing
@@ -50,7 +55,7 @@ and reset anything it left behind.
 Every `/api` call is logged with its GraphQL operation name, status, and timing.
 That log is the first place to look when something misbehaves on the phone.
 
-Deployment lives on Reimei at `~/docker/yume`:
+Deployment lives on the server at `~/docker/yume` (host in `.env`):
 
 ```bash
 ssh you@your-server
@@ -150,7 +155,7 @@ zoom on focus.
 
 ## Deployment topology (non-obvious)
 
-Suwayomi on Reimei runs with `network_mode: container:gluetun` — it shares the
+Suwayomi runs with `network_mode: container:gluetun` — it shares the
 VPN container's network namespace and has **no network or DNS name of its own**.
 Port 4567 is published by gluetun. Yume reaches it via `host.docker.internal`
 (`extra_hosts: host-gateway`), so its stack never touches the VPN container.

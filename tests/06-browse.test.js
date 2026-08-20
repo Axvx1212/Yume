@@ -15,7 +15,8 @@ const driver = await launch();
 try {
   suite('Three tabs, each with its own query');
 
-  await driver.goto(`${BASE}/index.html#/browse`, 6000);
+  await driver.goto(`${BASE}/index.html#/browse`);
+  await driver.waitFor('document.querySelectorAll(".seg button").length === 3');
   const tabs = await driver.eval(`JSON.stringify([...document.querySelectorAll('.seg button')].map(b => b.textContent))`);
   eq(tabs, '["Results","Sources","Extensions"]', 'Results / Sources / Extensions');
 
@@ -27,13 +28,19 @@ try {
       i.dispatchEvent(new Event('input', { bubbles: true }));
     })()
   `);
-  await sleep(9000);
+  // A live source scrape can take 10s+. Waiting for ".empty" would return
+  // instantly — that state is also shown before a search starts — so wait for
+  // the in-progress spinner to appear and then clear.
+  await driver.waitFor('!!document.querySelector(".loading-row") || document.querySelectorAll(".tile").length > 0',
+    { timeout: 15000, label: 'search starts' });
+  await driver.waitFor('!document.querySelector(".loading-row")',
+    { timeout: 45000, label: 'search finishes' });
   const resultTiles = await driver.eval(`document.querySelectorAll('.tile').length`);
   atLeast(resultTiles, 1, 'search returns results from installed sources', `${resultTiles} tiles`);
 
   // ...then switch to Sources; the query must not follow.
   await driver.eval(`[...document.querySelectorAll('.seg button')].find(b => b.textContent === 'Sources').click()`);
-  await sleep(7000);
+  await driver.waitFor('document.querySelectorAll(".row").length > 0 || !!document.querySelector(".empty")');
 
   const sources = await driver.json(`
     return {
@@ -58,7 +65,7 @@ try {
   }
 
   await driver.eval(`[...document.querySelectorAll('.seg button')].find(b => b.textContent === 'Extensions').click()`);
-  await sleep(9000);
+  await driver.waitFor('document.querySelectorAll(".row").length > 0', { timeout: 30000 });
   const ext = await driver.json(`
     return {
       labels: [...document.querySelectorAll('.section-label')].map(s => s.textContent),
@@ -73,7 +80,7 @@ try {
   suite('Source catalog opens');
 
   await driver.eval(`[...document.querySelectorAll('.seg button')].find(b => b.textContent === 'Sources').click()`);
-  await sleep(7000);
+  await driver.waitFor('document.querySelectorAll(".row").length > 0');
   // Pick a source with real content. "Local source" is always present and
   // always empty unless files were added on the server, so skip it.
   const opened = await driver.eval(`
@@ -91,7 +98,10 @@ try {
   if (!opened) {
     info('skipped', 'no non-local source installed to browse');
   } else {
-    await sleep(16000);
+    await driver.waitFor('location.hash.startsWith("#/source/")');
+    await driver.waitFor(
+      'document.querySelectorAll(".tile").length > 0 || !!document.querySelector(".empty")',
+      { timeout: 30000, label: 'source catalog' });
     const hash = await driver.eval(`location.hash`);
     ok(hash.startsWith('#/source/'), `tapping "${opened}" opens its catalog`, hash);
     atLeast(await driver.eval(`document.querySelectorAll('.tile').length`), 1, 'catalog shows titles');

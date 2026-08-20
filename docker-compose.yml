@@ -1,6 +1,7 @@
 # Yume — personal Suwayomi client.
 #
-# Suwayomi on Reimei runs with network_mode: container:gluetun, so it has no
+# A common self-hosted layout runs Suwayomi with network_mode:
+# container:gluetun, so it has no
 # network of its own and no DNS name a sidecar could resolve. Yume therefore
 # reaches it through the host gateway rather than a shared bridge network,
 # which also means this stack never has to touch the VPN container.

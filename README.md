@@ -15,6 +15,13 @@ as-authored.
 - **Incognito** reading that records nothing back to the server
 - Progress syncs to Suwayomi as you read
 
+|  |  |  |
+|:--:|:--:|:--:|
+| ![Library](docs/screenshots/library.png) | ![Manga detail](docs/screenshots/detail.png) | ![Reader](docs/screenshots/reader.png) |
+| **Library** — unread badges, progress rails | **Detail** — chapters, read state, resume | **Reader** — continuous webtoon scroll |
+| ![Chapter menu](docs/screenshots/menu.png) | ![Browse](docs/screenshots/browse.png) |  |
+| **Chapter menu** — bulk read / unread | **Browse** — sources and extensions |  |
+
 ## Configure
 
 Host addresses are not committed. Copy the example and point it at your server:
@@ -44,7 +51,8 @@ timing — the first place to look when something misbehaves on the phone.
 The dev server prints its LAN address on startup. Open that on the phone —
 same WiFi, no other setup.
 
-**Port 8420 by default**, because Docker already holds 8080 on this machine.
+Port 8420 is the default, chosen to stay clear of the 8080/8000 range most
+self-hosted stacks already use. `--port` overrides it.
 
 ## Same-origin, by design
 
@@ -87,67 +95,101 @@ js/
 dev-server.js       static + /api proxy, binds 0.0.0.0
 nginx.conf          same proxy arrangement for the container
 Dockerfile          nginx:alpine image
-SCHEMA.md           introspection notes — real field names + gotchas
+tests/              browser-driven suite (see Testing)
+tools/              GraphQL helpers for introspecting a running server
+SCHEMA.md           the introspected Suwayomi schema, with verified operations
 ```
 
 ## Design
 
-Follows the Nocturne system from the Claude Design handoff: `#161826` ground,
-`#9184d9` blurple accent used as line and glow rather than fill, Inter at
-weight 500, 8px radii, 0.70× density spacing. Tokens live at the top of
-`css/style.css`; nothing hard-codes a hex the tokens already carry.
+A dark system called Nocturne: `#161826` ground, a `#9184d9` blurple accent used
+as a line or a glow rather than a fill, Inter at weight 500, 8px radii, and a
+0.70× density spacing scale. Tokens live at the top of `css/style.css` and
+nothing hard-codes a hex the tokens already carry.
 
-The bundle detailed Library and Reader; Browse, Detail, and More follow the
-same vocabulary — outlined buttons, 44px touch targets, accent reserved for
-state rather than decoration.
+Every screen shares the same vocabulary — outlined buttons, 44px minimum touch
+targets, 16px inputs (anything smaller makes iOS zoom on focus), and the accent
+reserved for state rather than decoration.
 
-## Deployed on Reimei
+The original design bundle, including the interactive prototype the Library and
+Reader were built from, is in `yumeyomi-personal-manga-reader/`.
 
-Lives at `~/docker/yume` as its own compose stack, on **port 8420**:
+## Testing
 
-```
-http://your-server:8420
-```
+There is no unit-test framework. The suite drives headless Chrome over the
+DevTools protocol at iPhone dimensions and asserts on console errors, network
+events, rendered DOM, and decoded screenshot pixels:
 
 ```bash
-cd ~/docker/yume
-docker compose up -d --build     # deploy or update
-docker compose logs -f           # follow
-docker compose down              # stop
+node tests/run.cjs                 # everything (~7 min)
+node tests/run.cjs visual touch    # only files matching those names
 ```
 
-### Why it reaches Suwayomi through the host gateway
+The pixel assertions exist because two real bugs were invisible to DOM
+assertions alone: a full-bleed tap overlay that made the reader unscrollable on
+a phone, and a 1px border that drew a seam through webtoon artwork. Setting
+`scrollTop` in a test does not prove a page is scrollable — it bypasses
+hit-testing — so anything touch-related uses synthesized gestures.
 
-Suwayomi on Reimei runs with `network_mode: container:gluetun` — it shares the
-VPN container's network namespace and has **no network or DNS name of its
-own**, so a sidecar can't reach it by service name. Port 4567 is published by
-gluetun, not by Suwayomi.
+The suite talks to a real Suwayomi server and mutates real state (marking
+chapters read, adding to the library). Each test captures what it changed and
+restores it in a `finally`.
 
-Yume therefore talks to `host.docker.internal:4567` via `extra_hosts:
-host-gateway`, which means this stack never has to touch the VPN container.
-`YUME_UPSTREAM` in `docker-compose.yml` is the single knob — point it at a
-compose service name instead if the topology ever changes.
+## Deploying
 
-Two things worth knowing, both found by deploying rather than assuming:
+The app is a static bundle plus an nginx reverse proxy, so it runs anywhere
+Docker does:
+
+```bash
+cp .env.example .env        # set SUWAYOMI / YUME_BASE
+docker compose up -d --build
+```
+
+Then open `http://<host>:8420` on your phone and **Add to Home Screen**.
+
+`YUME_UPSTREAM` in `docker-compose.yml` tells nginx where Suwayomi lives. The
+default assumes Suwayomi is reachable on the Docker host; if it is a service on
+the same compose network, set it to that service name instead.
+
+### If Suwayomi runs behind a VPN container
+
+A common self-hosted layout puts Suwayomi inside a VPN container's network
+namespace (`network_mode: container:gluetun`). Suwayomi then has **no network
+or DNS name of its own** — the VPN container publishes its port — so a sidecar
+cannot reach it by service name.
+
+The shipped default handles this: Yume talks to `host.docker.internal:4567` via
+`extra_hosts: host-gateway`, so it never has to join the VPN container's
+network.
+
+### Two nginx footguns worth knowing
+
+Both of these were found by deploying rather than assuming, and both are
+already handled in `nginx.conf`:
 
 - **nginx's `resolver` does not read `/etc/hosts`.** A variable `proxy_pass`
-  can't resolve a `host-gateway` entry, so `proxy_pass` uses the substituted
-  `${YUME_UPSTREAM}` literal, which the system resolver handles.
+  cannot resolve a `host-gateway` entry, so `proxy_pass` uses the
+  envsubst-substituted `${YUME_UPSTREAM}` literal, which the system resolver
+  handles.
 - **`localhost` resolves to `::1` in `nginx:alpine`** while nginx listens on
   IPv4 only, so the healthcheck uses `127.0.0.1`.
+
+## Roadmap
+
+`docs/ROADMAP.md` sketches the next piece of work — user-selectable themes,
+including what in the current CSS blocks it and in what order to tackle it.
 
 ## Notes
 
 - Reading progress writes back to the server (throttled while scrolling, flushed
   on exit). Chapters auto-mark read on the last page.
 - **Incognito** (More → Privacy) stops the reader recording anything: no
-  position writes, no auto mark-read. Verified — reading a chapter end to end
-  with it on sends zero `updateChapter` calls and leaves the server row
-  untouched. Deliberate actions still work: adding to the library or tapping a
-  chapter's read toggle are choices, not history. The reader chrome shows an
-  INCOGNITO badge whenever it's active, so the state is never a surprise.
+  position writes, no auto mark-read. Deliberate actions still work — adding to
+  the library or tapping a chapter's read toggle are choices, not history. The
+  reader chrome shows an INCOGNITO badge whenever it is active.
 - Screen Wake Lock keeps the display on while reading where supported.
-- No service worker in v1 — the manifest alone covers Add to Home Screen.
+- No service worker — the manifest alone is enough for Add to Home Screen, and
+  chapters are always fetched live rather than cached offline.
 - Chapters are always fetched live; the in-memory cache is per-session only.
 - Navigation uses a real history stack (`pushState`), so Back unwinds
   reader → detail → source → browse. Tab switches *replace* the current entry

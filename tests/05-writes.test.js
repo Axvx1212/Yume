@@ -77,7 +77,8 @@ try {
       { id: manga.id, v: was },
     ),
     async () => {
-      await driver.goto(`${BASE}/index.html#/manga/${manga.id}`, 14000);
+      await driver.goto(`${BASE}/index.html#/manga/${manga.id}`);
+      await driver.waitFor('!!document.querySelector(".detail-hero .btn")');
       const clicked = await driver.eval(`
         (() => {
           const b = [...document.querySelectorAll('.btn')].find(x => x.textContent.includes('Add to library'));
@@ -87,7 +88,12 @@ try {
         })()
       `);
       ok(clicked, 'found the Add to library button');
-      await sleep(4000);
+      // The button flips optimistically, BEFORE the server round trip, so
+      // waiting on it races the mutation. The toast is only shown after the
+      // write is confirmed, which is the signal that actually means "saved".
+      await driver.waitFor(
+        'document.getElementById("toast")?.textContent.includes("Added to library")',
+        { timeout: 20000, label: 'library write confirmed' });
 
       const server = await gql(`query M($id: Int!) { manga(id: $id) { inLibrary } }`, { id: manga.id });
       eq(server.manga.inLibrary, true, 'membership persisted to the server');
@@ -117,8 +123,8 @@ try {
         await driver.eval(`(() => { const s = document.querySelector('.reader-scroll'); s.scrollTop = s.scrollHeight; })()`);
         await sleep(1200);
       }
-      await driver.goto(`${BASE}/index.html#/library`, 4000);   // triggers the dispose flush
-      await sleep(2000);
+      await driver.goto(`${BASE}/index.html#/library`);   // triggers the dispose flush
+      await sleep(1500);                                  // let the flush reach the server
 
       const after = await chapterState();
       eq(after.isRead, false, 'incognito did not mark the chapter read');
@@ -146,7 +152,8 @@ try {
     progressSnapshot,
     restoreProgress,
     async () => {
-      await driver.goto(`${BASE}/index.html#/manga/${manga.id}`, 14000);
+      await driver.goto(`${BASE}/index.html#/manga/${manga.id}`);
+      await driver.waitFor('document.querySelectorAll(".chapter").length > 0');
       driver.resetCounters();
 
       // One tap must send exactly one write (dblclick once sent three).
@@ -169,21 +176,23 @@ try {
     progressSnapshot,
     restoreProgress,
     async () => {
-      await driver.goto(`${BASE}/index.html#/manga/${manga.id}`, 16000);
+      await driver.goto(`${BASE}/index.html#/manga/${manga.id}`);
+      await driver.waitFor('document.querySelectorAll(".chapter").length > 0');
 
       // Overflow menu, top right of the hero.
       ok(await driver.eval(`!!document.querySelector('.detail-topbar .icon-btn[aria-label="More actions"]')`),
         'title screen has an overflow button');
 
       await driver.eval(`document.querySelector('.detail-topbar .icon-btn[aria-label="More actions"]').click()`);
-      await sleep(1200);
+      await driver.waitFor('!!document.querySelector(".sheet-action")');
       const titleActions = await driver.eval(
         `JSON.stringify([...document.querySelectorAll('.sheet-action .l')].map(n => n.textContent))`,
       );
       ok(titleActions.includes('Mark all read'), 'title menu offers Mark all read', titleActions);
 
       await driver.eval(`[...document.querySelectorAll('.sheet-action')].find(b => b.textContent.includes('Mark all read')).click()`);
-      await sleep(8000);
+      await driver.waitFor('document.getElementById("toast")?.textContent.includes("Marked read")',
+        { timeout: 30000, label: 'bulk write confirms' });
       const allRead = await gql(
         `query C($id: Int!) { chapters(condition: {mangaId: $id, isRead: true}) { totalCount } }`,
         { id: manga.id },
@@ -193,13 +202,14 @@ try {
 
       // The menu adapts once everything is read.
       await driver.eval(`document.querySelector('.detail-topbar .icon-btn[aria-label="More actions"]').click()`);
-      await sleep(1200);
+      await driver.waitFor('!!document.querySelector(".sheet-action")');
       const nowOffers = await driver.eval(
         `JSON.stringify([...document.querySelectorAll('.sheet-action .l')].map(n => n.textContent))`,
       );
       ok(nowOffers.includes('Mark all unread'), 'menu offers Mark all unread once read', nowOffers);
       await driver.eval(`[...document.querySelectorAll('.sheet-action')].find(b => b.textContent.includes('Mark all unread')).click()`);
-      await sleep(8000);
+      await driver.waitFor('document.getElementById("toast")?.textContent.includes("Marked unread")',
+        { timeout: 30000, label: 'bulk unread confirms' });
 
       // Long-press a chapter row opens its own menu, and releasing must NOT
       // fall through to opening the reader.
@@ -210,8 +220,8 @@ try {
           r.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: b.x + 40, clientY: b.y + 20 }));
         })()
       `);
-      await sleep(900);
-      ok(await driver.eval(`!!document.querySelector('.sheet-wrap')`), 'long-press opens the chapter menu');
+      await driver.waitFor('!!document.querySelector(".sheet-wrap")', { label: 'long-press menu' });
+      ok(true, 'long-press opens the chapter menu');
       const chapterActions = await driver.eval(
         `JSON.stringify([...document.querySelectorAll('.sheet-action .l')].map(n => n.textContent))`,
       );

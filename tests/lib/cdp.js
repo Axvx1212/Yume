@@ -165,25 +165,67 @@ export async function launch({ device = IPHONE, trackNetwork = false, concurrenc
     },
 
     /**
-     * Navigate with a real document load. Hash-only changes do NOT reload the
+     * Poll a page-side expression until it is truthy. Returns as soon as the
+     * condition holds, so a step that is ready in 300ms costs 300ms instead of
+     * whatever fixed timeout was guessed. Throws on timeout, which turns a
+     * silent "we waited long enough, probably" into a real failure.
+     */
+    async waitFor(expression, { timeout = 20000, every = 200, label = expression } = {}) {
+      const deadline = Date.now() + timeout;
+      let consecutiveErrors = 0;
+      for (;;) {
+        let value;
+        try {
+          value = await driver.eval(expression);
+          consecutiveErrors = 0;
+        } catch (err) {
+          // A failure mid-navigation is normal and worth retrying. A run of
+          // them means the browser is gone — polling a dead connection would
+          // otherwise hang until the harness timeout, which is what a swallowed
+          // disconnect did once: 7 minutes of nothing with no Chrome alive.
+          consecutiveErrors += 1;
+          if (consecutiveErrors >= 10) {
+            throw new Error(`browser stopped responding while waiting for: ${label}`);
+          }
+          value = null;
+        }
+        if (value) return value;
+        if (Date.now() > deadline) {
+          throw new Error(`waitFor timed out after ${timeout}ms: ${label}`);
+        }
+        await sleep(every);
+      }
+    },
+
+    /**
+     * Navigate with a real document load, then wait for the app to render
+     * rather than for a fixed duration. Hash-only changes do NOT reload the
      * page, so a test that seeds localStorage first must come through here to
      * see it (this cost real debugging time — see CLAUDE.md).
      */
-    async goto(url, settle = 4000) {
+    async goto(url, ready = 'document.querySelector("#view")?.children.length > 0') {
       await send('Page.navigate', { url });
-      await sleep(settle);
+      if (typeof ready === 'number') { await sleep(ready); return; }   // legacy call sites
+      await driver.waitFor(ready, { label: `render after ${url}` });
     },
 
     /** Seed prefs, then hard-load the target route so modules read them. */
-    async gotoWithPrefs(base, hash, prefs, settle = 12000) {
-      await driver.goto(`${base}/index.html#/library`, 3000);
+    async gotoWithPrefs(base, hash, prefs, ready = null) {
+      await driver.goto(`${base}/index.html#/library`);
       await driver.eval(
         `localStorage.setItem('yume.prefs.v1', ${JSON.stringify(JSON.stringify(prefs))})`,
       );
       await send('Page.reload', { ignoreCache: true });
-      await sleep(3000);
+      await driver.waitFor('document.querySelector("#view")?.children.length > 0',
+        { label: 'reload' });
       await driver.eval(`location.hash=${JSON.stringify(hash)}`);
-      await sleep(settle);
+
+      if (typeof ready === 'number') { await sleep(ready); return; }
+      // Default: a reader route is ready once its first page image decodes.
+      const fallback = hash.includes('/reader/')
+        ? '[...document.querySelectorAll(".page img, .paged-stage img")].some(i => i.naturalWidth > 0)'
+        : 'document.querySelector("#view")?.children.length > 0';
+      await driver.waitFor(ready || fallback, { timeout: 30000, label: `ready at ${hash}` });
     },
 
     /** A real finger swipe — not a scrollTop assignment, which skips hit-testing. */
