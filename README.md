@@ -19,8 +19,8 @@ as-authored.
 |:--:|:--:|:--:|
 | ![Library](docs/screenshots/library.png) | ![Manga detail](docs/screenshots/detail.png) | ![Reader](docs/screenshots/reader.png) |
 | **Library** — unread badges, progress rails | **Detail** — chapters, read state, resume | **Reader** — continuous webtoon scroll |
-| ![Chapter menu](docs/screenshots/menu.png) | ![Browse](docs/screenshots/browse.png) |  |
-| **Chapter menu** — bulk read / unread | **Browse** — sources and extensions |  |
+| ![Chapter menu](docs/screenshots/menu.png) | ![Browse](docs/screenshots/browse.png) | ![More](docs/screenshots/more.png) |
+| **Chapter menu** — bulk read / unread | **Browse** — sources and extensions | **More** — incognito, reading defaults |
 
 ## Configure
 
