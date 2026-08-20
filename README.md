@@ -31,9 +31,11 @@ as-authored.
 
 ## Setup
 
-Tell Yume where your Suwayomi lives:
+Get the repo, then tell Yume where your Suwayomi lives:
 
 ```bash
+git clone https://github.com/Axvx1212/Yume.git
+cd Yume
 cp .env.example .env
 ```
 
@@ -154,6 +156,8 @@ The app is a static bundle plus an nginx reverse proxy, so it runs anywhere
 Docker does:
 
 ```bash
+git clone https://github.com/Axvx1212/Yume.git
+cd Yume
 cp .env.example .env        # set SUWAYOMI / YUME_BASE
 docker compose up -d --build
 ```
