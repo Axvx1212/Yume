@@ -1,0 +1,1178 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Yume — Nocturne design system, applied to a mobile PWA.
+   Tokens are lifted verbatim from the design bundle's styles.css; the
+   component layer below is Yume's own, built only from those tokens.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --color-bg: #161826;
+  --color-surface: #232532;
+  --color-text: #e9e9ed;
+  --color-accent: #9184d9;
+  --color-divider: color-mix(in srgb, #e9e9ed 16%, transparent);
+
+  /* Tonal ramps — OKLCH, one shared lightness scale. */
+  --color-neutral-100: #f3f5fe;
+  --color-neutral-200: #e4e7f5;
+  --color-neutral-300: #cfd3e5;
+  --color-neutral-400: #b2b6ca;
+  --color-neutral-500: #9397ab;
+  --color-neutral-600: #75798c;
+  --color-neutral-700: #595d6c;
+  --color-neutral-800: #3f424d;
+  --color-neutral-900: #292b31;
+
+  --color-accent-100: #f5f4ff;
+  --color-accent-200: #e7e5fe;
+  --color-accent-300: #d2cefd;
+  --color-accent-400: #b5abfc;
+  --color-accent-500: #968ae0;
+  --color-accent-600: #796cbf;
+  --color-accent-700: #5d5294;
+  --color-accent-800: #423a6a;
+  --color-accent-900: #2b2741;
+
+  --font-heading: "Inter", system-ui, sans-serif;
+  --font-heading-weight: 500;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: ui-monospace, Menlo, monospace;
+
+  /* Density 0.70× — this system is dense on purpose. */
+  --space-1: 2.8px;
+  --space-2: 5.6px;
+  --space-3: 8.4px;
+  --space-4: 11.2px;
+  --space-6: 16.8px;
+  --space-8: 22.4px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 0 0 1px #3f424d;
+  --shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0, 0, 0, 0.65);
+
+  /* Yume additions — the prototype's darker reader ground and header lift. */
+  --color-ink: #0b0c14;
+  --color-raised: #1c1e2b;
+  --color-header-top: #1b1d2c;
+
+  /* iOS safe areas, with a floor so desktop still gets breathing room. */
+  --safe-top: max(env(safe-area-inset-top), 12px);
+  --safe-bottom: max(env(safe-area-inset-bottom), 10px);
+  --tabbar-h: calc(58px + var(--safe-bottom));
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  height: 100%;
+  /* iOS paints anything outside the shell — including the strip behind the
+     home indicator — with the root background, so it has to match the app
+     ground or it reads as a foreign band. */
+  background: var(--color-bg);
+}
+
+body {
+  height: 100%;
+  overscroll-behavior-y: none;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+a { color: var(--color-accent-400); text-decoration: none; }
+img { display: block; max-width: 100%; }
+button { font-family: inherit; color: inherit; }
+
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
+::-webkit-scrollbar { width: 0; height: 0; }
+
+@keyframes yfade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.28; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── shell ───────────────────────────────────────────────────────────── */
+
+/* The shell is pinned to the viewport rather than sized as a percentage of
+   its ancestors, so it can't inherit a mis-resolved height from html/body.
+
+   The bottom band that prompted this was actually caused by
+   apple-mobile-web-app-status-bar-style: black-translucent (see index.html):
+   iOS drew the web view full-screen but reported a viewport 59px short — the
+   exact height of the top inset — leaving that much dead space under the tab
+   bar. The meta tag is the real fix; pinning the shell keeps the layout honest
+   either way. */
+.app {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.view {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Every screen fills the shell and scrolls internally, so the tab bar and
+   the sticky headers stay put while content moves under them. */
+.screen { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+.pad-tabs { padding-bottom: calc(var(--tabbar-h) + var(--space-8)); }
+
+/* ── header ──────────────────────────────────────────────────────────── */
+
+.hdr {
+  flex: none;
+  padding: calc(var(--safe-top) + 10px) var(--space-6) 0;
+  background: linear-gradient(to bottom, var(--color-header-top), var(--color-bg));
+}
+
+.hdr-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.hdr-kicker {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent-600);
+}
+
+.hdr-title { font-size: 26px; line-height: 1.1; letter-spacing: -0.025em; }
+
+.hdr-actions { display: flex; gap: 2px; }
+
+/* ── icon buttons — 44px minimum touch target throughout ─────────────── */
+
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-neutral-400);
+  cursor: pointer;
+}
+.icon-btn svg { width: 19px; height: 19px; }
+.icon-btn:hover { color: var(--color-text); }
+.icon-btn:active { background: color-mix(in srgb, var(--color-text) 8%, transparent); }
+.icon-btn.is-on { color: var(--color-accent-400); }
+
+/* ── buttons — outlined, never flooded ───────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--color-neutral-300);
+  background: transparent;
+  border: 1px solid var(--color-neutral-800);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.btn svg { width: 15px; height: 15px; flex: none; }
+.btn:hover { border-color: var(--color-accent); color: var(--color-text); }
+.btn:active { background: var(--color-accent-900); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--color-neutral-800); color: var(--color-neutral-300); }
+
+.btn-accent {
+  border-color: var(--color-accent);
+  color: var(--color-accent-300);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+.btn-accent:hover { background: color-mix(in srgb, var(--color-accent) 20%, transparent); }
+
+.btn-sm { min-height: 36px; padding: 0 11px; font-size: 11.5px; }
+.btn-block { width: 100%; }
+
+/* ── tab bar ─────────────────────────────────────────────────────────── */
+
+.tabbar {
+  flex: none;
+  /* absolute, not fixed: the shell above is the fixed element, so the bar is
+     pinned to the shell's own bottom edge and iOS can't leave it behind
+     mid-scroll. */
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  display: flex;
+  padding: 8px 12px var(--safe-bottom);
+  background: color-mix(in srgb, var(--color-bg) 86%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-top: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+.tabbar[hidden] { display: none; }
+
+.tab {
+  flex: 1;
+  min-height: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--color-neutral-600);
+  font-size: 10px;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+}
+.tab svg { width: 21px; height: 21px; }
+.tab[aria-current="page"] { color: var(--color-accent-400); }
+
+/* ── covers ──────────────────────────────────────────────────────────── */
+
+.cover {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-raised);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-text) 7%, transparent),
+              0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.cover img.is-loaded { opacity: 1; }
+
+/* Placeholder weave — stands in until art arrives, and stays behind it. */
+.cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(115deg, rgba(0, 0, 0, 0.16) 0 6px, transparent 6px 18px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cover-scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 52%;
+  background: linear-gradient(to top, rgba(11, 12, 20, 0.8), transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 3;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 100px;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px rgba(145, 132, 217, 0.5);
+}
+
+.pill {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 3;
+  padding: 2px 6px;
+  border-radius: 100px;
+  background: rgba(11, 12, 20, 0.72);
+  color: var(--color-accent-300);
+  font-size: 9.5px;
+  font-weight: 500;
+}
+
+.progress-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  height: 3px;
+  background: color-mix(in srgb, var(--color-text) 14%, transparent);
+}
+.progress-rail > i {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  box-shadow: 0 0 8px rgba(145, 132, 217, 0.7);
+}
+
+/* ── library ─────────────────────────────────────────────────────────── */
+
+.cats {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  margin: 0 calc(var(--space-6) * -1);
+  padding: 0 var(--space-6);
+  scrollbar-width: none;
+}
+
+.cat {
+  flex: none;
+  min-height: 42px;
+  padding: 0 1px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  color: var(--color-neutral-600);
+  font-size: 13px;
+  font-weight: 500;
+}
+.cat .n { font-family: var(--font-mono); font-size: 11px; font-weight: 400; color: var(--color-neutral-700); }
+.cat[aria-selected="true"] { color: var(--color-text); border-bottom-color: var(--color-accent); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  gap: 12px 10px;
+  padding: var(--space-6);
+}
+
+.tile { display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
+.tile:active { opacity: 0.86; }
+
+.tile-title {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--color-neutral-300);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-wrap: pretty;
+}
+
+.foot {
+  padding: var(--space-8) var(--space-6) 0;
+  font-size: 11px;
+  color: var(--color-neutral-700);
+  text-align: center;
+}
+
+/* ── browse ──────────────────────────────────────────────────────────── */
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-neutral-800);
+}
+.search svg { width: 17px; height: 17px; flex: none; color: var(--color-neutral-600); }
+.search input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--color-text);
+  font: 400 16px var(--font-body); /* 16px — anything smaller makes iOS zoom on focus */
+}
+.search input::placeholder { color: var(--color-neutral-600); }
+.search:focus-within { border-color: var(--color-accent); }
+
+.seg {
+  display: flex;
+  gap: 6px;
+  padding: 3px;
+  background: var(--color-raised);
+  border: 1px solid var(--color-neutral-800);
+  border-radius: var(--radius-md);
+}
+.seg button {
+  flex: 1;
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--color-neutral-500);
+}
+.seg button[aria-selected="true"] { background: var(--color-accent-900); color: var(--color-accent-300); }
+
+.rail-head {
+  padding: 0 var(--space-6);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.rail-head .name { font-size: 13.5px; font-weight: 500; }
+.rail-head .n { font-family: var(--font-mono); font-size: 11px; color: var(--color-neutral-600); }
+
+.rail {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px var(--space-6) 4px;
+  scrollbar-width: none;
+}
+.rail .tile { flex: none; width: 96px; }
+.rail .tile-title { font-size: 11px; line-height: 1.3; }
+
+/* ── source / extension rows ─────────────────────────────────────────── */
+
+.rows { display: flex; flex-direction: column; gap: 8px; padding: 14px var(--space-6); }
+
+.section-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-neutral-600);
+  padding-bottom: 2px;
+}
+.section-label + .section-label, .rows .section-label:not(:first-child) { padding-top: 14px; }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-raised);
+  box-shadow: var(--shadow-sm);
+}
+.row.is-ghost { background: transparent; box-shadow: 0 0 0 1px var(--color-neutral-900); }
+
+.row-icon {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-neutral-800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-neutral-600);
+}
+.row-icon img { width: 100%; height: 100%; object-fit: cover; }
+
+.row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.row-name {
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.row-meta { font-size: 11px; color: var(--color-neutral-500); }
+
+/* ── manga detail ────────────────────────────────────────────────────── */
+
+.detail-hero { position: relative; padding: calc(var(--safe-top) + 10px) var(--space-6) 18px; }
+.detail-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, var(--hero, var(--color-accent-800)), var(--color-bg) 78%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.detail-hero > * { position: relative; }
+
+.detail-top { display: flex; gap: 14px; }
+.detail-cover { width: 112px; flex: none; }
+.detail-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; padding-top: 2px; }
+.detail-title { font-size: 21px; line-height: 1.2; letter-spacing: -0.02em; text-wrap: pretty; }
+.detail-author { font-size: 12px; line-height: 1.5; color: var(--color-neutral-400); }
+.detail-meta { font-size: 11.5px; color: var(--color-neutral-500); }
+
+.tags { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 2px; }
+.tag {
+  padding: 4px 9px;
+  border-radius: 100px;
+  background: var(--color-accent-900);
+  color: var(--color-accent-300);
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+.synopsis {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--color-neutral-400);
+  text-wrap: pretty;
+}
+.synopsis.is-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.synopsis-toggle {
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  padding: var(--space-2) 0 0;
+  color: var(--color-accent-400);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.chapters-bar {
+  padding: 6px var(--space-6) 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.chapters-bar .count { font-size: 13px; font-weight: 500; }
+
+.chapter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 62px;
+  padding: 10px var(--space-6);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-text) 6%, transparent);
+  cursor: pointer;
+}
+.chapter:active { background: var(--color-raised); }
+.chapter.is-current { background: color-mix(in srgb, var(--color-accent) 7%, transparent); }
+
+.chapter-mark {
+  width: 3px;
+  align-self: stretch;
+  flex: none;
+  border-radius: 100px;
+  background: color-mix(in srgb, var(--color-accent) 28%, transparent);
+}
+.chapter.is-read .chapter-mark { background: transparent; }
+.chapter.is-current .chapter-mark { background: var(--color-accent); }
+
+.chapter-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.chapter-name {
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chapter.is-read .chapter-name { color: var(--color-neutral-600); }
+.chapter-sub { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--color-neutral-600); }
+.chapter-sub .prog { color: var(--color-accent-600); }
+
+.chapter-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 10px rgba(145, 132, 217, 0.6);
+}
+
+.dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 14px var(--space-6) calc(var(--safe-bottom) + 14px);
+  background: linear-gradient(to top, var(--color-bg) 55%, color-mix(in srgb, var(--color-bg) 85%, transparent), transparent);
+}
+.dock .btn { min-height: 52px; font-size: 14px; box-shadow: 0 0 24px rgba(145, 132, 217, 0.14); }
+
+/* ── reader ──────────────────────────────────────────────────────────── */
+
+/* While the reader is open the page ground goes dark too, so nothing painted
+   outside the shell (the strip behind the home indicator) reads as a lighter
+   band under the pages. */
+html:has(.reader), body:has(.reader) { background: var(--color-ink); }
+
+.reader {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: var(--color-ink);
+  overflow: hidden;
+}
+
+.reader-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+.chapter-sep {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 26px 20px 14px;
+}
+.chapter-sep .line { height: 1px; flex: 1; }
+.chapter-sep .line.l { background: linear-gradient(to right, transparent, var(--color-neutral-800)); }
+.chapter-sep .line.r { background: linear-gradient(to left, transparent, var(--color-neutral-800)); }
+.chapter-sep .label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-neutral-600);
+}
+
+/* No separator between pages. A webtoon chapter is one tall image sliced at
+   arbitrary points and meant to reassemble invisibly, so a hairline rule cuts
+   through artwork mid-panel. The design prototype had one because it drew
+   placeholder tiles, where a divider made sense.
+
+   This needs no mode check: paged mode hides this whole column
+   (.reader-scroll display:none) and renders into .paged-stage instead, so the
+   border was only ever painted in webtoon mode — measured, not assumed. */
+.page {
+  position: relative;
+  background: #15161f;
+  min-height: 120px;
+}
+.page img { width: 100%; height: auto; }
+
+/* The weave placeholder holds the slot until the image decodes. */
+.page-ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: repeating-linear-gradient(135deg, rgba(233, 233, 237, 0.028) 0 2px, transparent 2px 9px);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--color-neutral-800);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.reader-end {
+  padding: 34px 22px calc(var(--safe-bottom) + 120px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-neutral-600);
+}
+
+.spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--color-accent-900);
+  border-top-color: var(--color-accent);
+  animation: spin 1s linear infinite;
+}
+
+/* paged mode */
+.paged {
+  position: absolute;
+  inset: 0;
+  z-index: 31;
+  background: var(--color-ink);
+  display: flex;
+  flex-direction: column;
+}
+.paged-stage {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.paged-stage img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  animation: yfade 0.18s ease;
+}
+.paged-ph {
+  width: calc(100% - 24px);
+  height: 74%;
+  border: 1px solid color-mix(in srgb, var(--color-text) 6%, transparent);
+  border-radius: 2px;
+}
+.tapzone { position: absolute; top: 0; bottom: 0; z-index: 3; }
+.tapzone.prev { left: 0; width: 34%; }
+.tapzone.mid { left: 34%; width: 32%; }
+.tapzone.next { right: 0; width: 34%; }
+
+/* chrome */
+.chrome { position: absolute; inset: 0; z-index: 40; pointer-events: none; }
+
+.chrome-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: calc(var(--safe-top) + 8px) 14px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+  animation: yfade 0.18s ease;
+  background: linear-gradient(to bottom, rgba(11, 12, 20, 0.96), rgba(11, 12, 20, 0.82) 70%, transparent);
+}
+.chrome-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.chrome-title .t {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chrome-title .s { font-size: 11.5px; color: var(--color-neutral-500); }
+
+.chrome-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 14px calc(var(--safe-bottom) + 22px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+  animation: yfade 0.18s ease;
+  background: linear-gradient(to top, rgba(11, 12, 20, 0.97), rgba(11, 12, 20, 0.85) 60%, transparent);
+}
+.seek { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.seek-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--color-neutral-600);
+}
+
+input[type="range"] {
+  width: 100%;
+  height: 26px;
+  accent-color: var(--color-accent);
+  background: transparent;
+  cursor: pointer;
+}
+
+/* ── sheet ───────────────────────────────────────────────────────────── */
+
+.sheet-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 12, 20, 0.6);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border: 0;
+  padding: 0;
+}
+.sheet {
+  position: relative;
+  background: var(--color-raised);
+  border-top: 1px solid var(--color-neutral-800);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 18px 18px calc(var(--safe-bottom) + 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.65);
+  animation: yfade 0.22s ease;
+  max-height: 88%;
+  overflow-y: auto;
+}
+.sheet-grip {
+  width: 38px;
+  height: 4px;
+  border-radius: 100px;
+  background: var(--color-neutral-800);
+  align-self: center;
+}
+.sheet-group { display: flex; flex-direction: column; gap: 9px; }
+
+.opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  background: transparent;
+  border: 1px solid var(--color-neutral-800);
+}
+.opt:hover { border-color: var(--color-accent-600); }
+.opt[aria-checked="true"] { background: color-mix(in srgb, var(--color-accent) 10%, transparent); border-color: var(--color-accent); }
+.opt-dot {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-neutral-800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.opt-dot::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: transparent; }
+.opt[aria-checked="true"] .opt-dot { border-color: var(--color-accent); }
+.opt[aria-checked="true"] .opt-dot::after { background: var(--color-accent); }
+.opt-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.opt-text .l { font-size: 13.5px; font-weight: 500; }
+.opt-text .h { font-size: 11.5px; color: var(--color-neutral-500); }
+
+.dim {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  background: #000;
+}
+
+/* ── more ────────────────────────────────────────────────────────────── */
+
+.more-body { display: flex; flex-direction: column; gap: 20px; padding: 6px var(--space-6) 0; }
+.more-group { display: flex; flex-direction: column; gap: 9px; }
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-raised);
+  box-shadow: var(--shadow-sm);
+}
+.status-dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-neutral-600);
+}
+.status-dot.is-up { background: var(--color-accent); box-shadow: 0 0 10px var(--color-accent); }
+.status-sub {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--color-neutral-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.link-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: 0;
+  box-shadow: 0 0 0 1px var(--color-neutral-900);
+  cursor: pointer;
+  text-align: left;
+}
+.link-row:active { background: var(--color-raised); }
+.link-row svg { width: 17px; height: 17px; flex: none; color: var(--color-neutral-700); }
+
+.hr {
+  height: 1px;
+  border: 0;
+  margin: var(--space-4) 0 0;
+  background: linear-gradient(to right, transparent, var(--color-neutral-900) 48px, var(--color-neutral-900) calc(100% - 48px), transparent);
+}
+
+.fine { font-size: 11px; line-height: 1.7; color: var(--color-neutral-700); padding-top: 8px; }
+
+/* ── states ──────────────────────────────────────────────────────────── */
+
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-8) calc(var(--tabbar-h) + var(--space-8));
+  text-align: center;
+}
+.empty h4 { font-size: 17px; }
+.empty p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--color-neutral-500); max-width: 300px; text-wrap: pretty; }
+.empty .btn { margin-top: var(--space-2); }
+
+.empty-icon { color: var(--color-neutral-700); }
+.empty-icon svg { width: 34px; height: 34px; }
+
+/* Skeletons — the shimmer stands in for the tile it will become. */
+.skel { background: var(--color-raised); border-radius: var(--radius-md); animation: pulse 1.6s ease-in-out infinite; }
+.skel-tile { aspect-ratio: 2 / 3; }
+.skel-line { height: 11px; border-radius: var(--radius-sm); }
+.skel-line.short { width: 60%; }
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: var(--space-8);
+  font-size: 12px;
+  color: var(--color-neutral-600);
+}
+.loading-row .spinner { width: 18px; height: 18px; border-width: 2px; }
+
+.error-box {
+  margin: var(--space-6);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-raised);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+.error-box .msg { font-size: 12.5px; line-height: 1.6; color: var(--color-neutral-400); }
+.error-box code { font-family: var(--font-mono); font-size: 11px; color: var(--color-accent-300); word-break: break-all; }
+
+/* ── toast ───────────────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabbar-h) + 16px);
+  z-index: 200;
+  transform: translate(-50%, 12px);
+  max-width: min(88vw, 380px);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-raised);
+  box-shadow: var(--shadow-md);
+  font-size: 12.5px;
+  color: var(--color-neutral-200);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ── wider screens — the phone layout centers rather than stretching ─── */
+
+@media (min-width: 720px) {
+  .grid { --cols: 5; }
+}
+@media (min-width: 1040px) {
+  .grid { --cols: 7; }
+}
+
+/* ── switch — the prototype's toggle, 46×28 track with a 20px knob ────── */
+
+.switch {
+  width: 46px;
+  height: 28px;
+  flex: none;
+  position: relative;
+  border-radius: 100px;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--color-neutral-800);
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-neutral-700);
+  transition: left 0.16s ease, background 0.16s ease;
+}
+.switch[aria-checked="true"] {
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  border-color: var(--color-accent);
+}
+.switch[aria-checked="true"]::after {
+  left: 21px;
+  background: var(--color-accent-400);
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-raised);
+  box-shadow: var(--shadow-sm);
+}
+.toggle-row .row-meta { line-height: 1.45; text-wrap: pretty; white-space: normal; }
+
+/* Incognito badge in the reader chrome — a line, not a flood. */
+.incognito-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 100px;
+  border: 1px solid var(--color-accent-600);
+  color: var(--color-accent-300);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex: none;
+}
+
+/* ── action sheet — chapter long-press and the detail overflow menu ───── */
+
+.sheet-head { display: flex; flex-direction: column; gap: 2px; }
+.sheet-title {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sheet-sub { font-size: 11.5px; color: var(--color-neutral-500); }
+
+.sheet-actions { display: flex; flex-direction: column; gap: 6px; }
+
+.sheet-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: 1px solid var(--color-neutral-800);
+  cursor: pointer;
+  text-align: left;
+  color: var(--color-text);
+}
+.sheet-action svg { flex: none; color: var(--color-neutral-400); }
+.sheet-action:hover { border-color: var(--color-accent); }
+.sheet-action:active { background: var(--color-accent-900); }
+.sheet-action.is-danger { color: var(--color-accent-300); }
+.sheet-action.is-danger svg { color: var(--color-accent-400); }
+
+.sheet-action-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sheet-action-text .l { font-size: 13.5px; font-weight: 500; }
+.sheet-action-text .h { font-size: 11.5px; color: var(--color-neutral-500); }
+
+/* A chapter row held down — feedback that the press registered. */
+.chapter.is-pressed { background: var(--color-accent-900); }
+
+/* Back on the left, overflow on the right. */
+.detail-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}

@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Machine-specific Claude Code permissions. The shared hook config lives in
+# .claude/settings.json and IS tracked; this file is per-machine.
+.claude/settings.local.json
+
+# Never commit credentials. Nothing here needs them today — Suwayomi runs
+# without auth on the LAN — but if that changes, put them in .env.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.*
+
+# Test artefacts and scratch output
+*.log
+/tmp/
+screenshots/

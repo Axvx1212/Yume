@@ -1,0 +1,14 @@
+# The Claude Design handoff bundle — reference material, not runtime assets.
+yumeyomi-personal-manga-reader/
+
+# Dev-only and docs
+dev-server.js
+docker-compose.yml
+PROJECT_PLAN*.md
+README.md
+SCHEMA.md
+.dockerignore
+.git
+.claude
+.DS_Store
+**/.DS_Store

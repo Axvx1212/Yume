@@ -1,0 +1,25 @@
+# Yume — personal Suwayomi client.
+#
+# Suwayomi on Reimei runs with network_mode: container:gluetun, so it has no
+# network of its own and no DNS name a sidecar could resolve. Yume therefore
+# reaches it through the host gateway rather than a shared bridge network,
+# which also means this stack never has to touch the VPN container.
+#
+#   docker compose up -d --build
+#
+services:
+  yume:
+    build: .
+    image: yume:latest
+    container_name: yume
+    ports:
+      - "8420:80"
+    environment:
+      # Where Suwayomi's API lives, as seen from inside this container.
+      - YUME_UPSTREAM=host.docker.internal:4567
+      - TZ=Asia/Dubai
+    extra_hosts:
+      # Resolves host.docker.internal to the host, so the proxy can reach the
+      # port gluetun publishes.
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

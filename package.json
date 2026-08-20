@@ -1,0 +1,11 @@
+{
+  "name": "yume",
+  "private": true,
+  "type": "module",
+  "description": "PWA client for a self-hosted Suwayomi server. No build step; package.json exists only to mark the app as ESM and to name the test commands.",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "test": "node tests/run.cjs",
+    "check": "node --check js/app.js && node --check js/api.js && node --check js/state.js && node --check js/dom.js && node --check js/views/library.js && node --check js/views/browse.js && node --check js/views/source.js && node --check js/views/manga-detail.js && node --check js/views/reader.js && node --check js/views/more.js && node --check dev-server.js"
+  }
+}
