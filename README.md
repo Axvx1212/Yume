@@ -22,19 +22,32 @@ as-authored.
 | ![Chapter menu](docs/screenshots/menu.png) | ![Browse](docs/screenshots/browse.png) | ![More](docs/screenshots/more.png) |
 | **Chapter menu** — bulk read / unread | **Browse** — sources and extensions | **More** — incognito, reading defaults |
 
-## Configure
+## Requirements
 
-Host addresses are not committed. Copy the example and point it at your server:
+- A running [Suwayomi-Server](https://github.com/Suwayomi/Suwayomi-Server) on
+  your network, with at least one extension installed.
+- Docker, to run Yume itself. (Node 18+ only if you want the dev server.)
+- An iPhone on the same network as both.
+
+## Setup
+
+Tell Yume where your Suwayomi lives:
 
 ```bash
 cp .env.example .env
-# then edit SUWAYOMI / YUME_BASE
 ```
 
-`.env` is gitignored. A real environment variable overrides it, so
-`SUWAYOMI=http://other:4567 node dev-server.js` works for one-offs. Anything
-still reading `*.local` is unconfigured and the tools will say so rather than
-failing obscurely.
+Then edit `.env`:
+
+```bash
+SUWAYOMI=http://192.168.x.x:4567     # your Suwayomi API
+YUME_BASE=http://192.168.x.x:8420    # where Yume will be served
+```
+
+`.env` is not tracked by git, so your addresses stay on your machine. A real
+environment variable overrides it — `SUWAYOMI=http://other:4567 node
+dev-server.js` works for one-offs. Leave it unset and the tools will tell you
+it is unconfigured rather than failing obscurely.
 
 ## Running it
 
@@ -145,7 +158,7 @@ cp .env.example .env        # set SUWAYOMI / YUME_BASE
 docker compose up -d --build
 ```
 
-Then open `http://<host>:8420` on your phone and **Add to Home Screen**.
+Then install it on your phone — see below.
 
 `YUME_UPSTREAM` in `docker-compose.yml` tells nginx where Suwayomi lives. The
 default assumes Suwayomi is reachable on the Docker host; if it is a service on
@@ -173,6 +186,33 @@ already handled in `nginx.conf`:
   handles.
 - **`localhost` resolves to `::1` in `nginx:alpine`** while nginx listens on
   IPv4 only, so the healthcheck uses `127.0.0.1`.
+
+## Installing it on an iPhone
+
+Yume is a PWA, so there is no App Store, no sideloading, and no signing. Safari
+installs it directly:
+
+1. Open **Safari** on the iPhone and go to `http://<your-server>:8420`.
+   It has to be Safari — Chrome and Firefox on iOS cannot install web apps.
+2. Tap the **Share** button (the square with an arrow, in the bottom bar).
+3. Scroll down and tap **Add to Home Screen**.
+4. Name it and tap **Add**.
+
+You now have a Yume icon on the Home Screen. Opening it launches full-screen
+with no browser chrome — no address bar, no tabs — and it keeps its own history
+stack, so the back gesture works inside the app rather than leaving it.
+
+A few things worth knowing:
+
+- **The phone must be able to reach the server**, so stay on the same network
+  (or on a VPN back to it). There is no cloud component; nothing leaves your
+  network.
+- **Updating the app**: reload the page and the new version is live — it is
+  served fresh every time, with no cached bundle. The one exception is
+  `index.html`'s meta tags and `manifest.json`, which iOS reads *at install
+  time*; changing those needs the icon deleted and re-added.
+- **Reading position syncs to Suwayomi**, so picking up on another device
+  continues where you left off.
 
 ## Roadmap
 
